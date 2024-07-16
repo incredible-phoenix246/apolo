@@ -1,12 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, startTransition } from "react";
 
 import Image from "next/image";
 import { HorizontalScrollCarousel } from "./cards";
+import { Heart } from "iconsax-react";
+import { getLikeCount, LikePage } from "./action";
+import { cn } from "@/utils";
 
 const Main = () => {
   const [open, setOpen] = useState(true);
+  const [likes, setLikes] = useState<number | null>(0);
+  const [hasLiked, setHasLiked] = useState<boolean>(false);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setOpen(false);
@@ -14,6 +20,36 @@ const Main = () => {
 
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const fetchCount = async () => {
+      startTransition(() => {
+        getLikeCount().then((res) => {
+          setLikes(res.likes ?? 0);
+        });
+      });
+    };
+    fetchCount();
+
+    const liked = localStorage.getItem("hasLiked");
+    if (liked) {
+      setHasLiked(true);
+    }
+  }, []);
+
+  const handleLike = async () => {
+    if (!hasLiked) {
+      startTransition(() => {
+        LikePage().then((res) => {
+          if (res !== undefined) {
+            setLikes(res.likes ?? 0);
+            localStorage.setItem("hasLiked", "true");
+            setHasLiked(true);
+          }
+        });
+      });
+    }
+  };
   return (
     <>
       {open ? (
@@ -89,6 +125,20 @@ const Main = () => {
                 mistakes
               </span>
             </h2>
+
+            <div className="flex items-center justify-center gap-4 mt-5">
+              <button
+                className={cn(
+                  "bg-red-500 text-white px-4 py-2 rounded flex items-center gap-2",
+                  hasLiked ? "cursor-not-allowed opacity-50 " : ""
+                )}
+                onClick={handleLike}
+                disabled={hasLiked}
+              >
+                <Heart size={24} />
+                Like ({likes})
+              </button>
+            </div>
           </div>
           <section className="z-10 relative">
             <div className="flex items-center justify-center">
